@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>İyi Gelir – Duygularını paylaş</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{--bg:#fbf7f2;--card:#fff;--tx:#2a2622;--mu:#7a716a;--ln:#ece4db;--ac:#e07a5f;--ac2:#f4e1d8;--ok:#3d8b6e;--warn:#fff3d6;--wt:#6b4e00}
+@media(prefers-color-scheme:dark){:root{--bg:#1a1714;--card:#252019;--tx:#f0e9e2;--mu:#a69b91;--ln:#3a332b;--ac:#f08d72;--ac2:#3b2b24;--ok:#6cc4a1;--warn:#3b3114;--wt:#f2d98a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.w{max-width:680px;margin:0 auto;padding:14px}
+h1{margin:6px 0 2px;font:800 28px/1.2 Georgia,"Times New Roman",serif}h1 span{color:var(--ac)}
+.sub{color:var(--mu);margin:0 0 12px}
+.warn{background:var(--warn);color:var(--wt);border-radius:12px;padding:10px 14px;font-size:13.5px;margin-bottom:14px}
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tabs button,.chip,.btn{font:inherit;cursor:pointer;border:1px solid var(--ln);background:var(--card);color:var(--tx);border-radius:20px;padding:7px 14px}
+.tabs button{flex:1;border-radius:12px;font-weight:600}
+.tabs .on,.chip.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chip{padding:5px 11px;font-size:14px}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:16px;padding:14px;margin-bottom:12px}
+textarea,input[type=text]{width:100%;font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--ln);border-radius:10px;padding:9px 11px}
+textarea{resize:vertical;min-height:80px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.btn.p{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:700}
+.meta{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--mu);margin-bottom:6px}
+.badge{background:var(--ac2);color:var(--ac);border-radius:12px;padding:2px 10px;font-weight:700;font-size:13px}
+.tip{display:flex;gap:10px;align-items:flex-start;border-top:1px solid var(--ln);padding:10px 0 0;margin-top:10px;font-size:15px}
+.tip .t{flex:1}.tip small{display:block;color:var(--mu);font-size:12px}
+.like{border:1px solid var(--ln);background:var(--bg);color:var(--tx);border-radius:14px;padding:3px 10px;cursor:pointer;font:inherit;font-size:13px;white-space:nowrap}
+.like.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.lnk{background:none;border:0;color:var(--ac);cursor:pointer;font:inherit;font-size:14px;padding:4px 0}
+.del{margin-left:auto}
+.empty{text-align:center;color:var(--mu);padding:30px 10px}
+.cat h3{margin:14px 0 4px;font-size:15px}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;display:none;max-width:90%}
+</style>
+</head>
+<body>
+<div class="w">
+ <h1>İyi <span>Gelir</span> 💛</h1>
+ <p class="sub">Nasıl hissettiğini paylaş. Sana ne iyi geldiyse başkalarına öner, başkalarının önerilerinden güç al.</p>
+ <div class="warn">Bu site profesyonel destek yerine geçmez. Kendine zarar vermeyi düşünüyorsan ya da acil durumdaysan hemen <b>112</b>’yi ara. Birine anlatmak istersen <b>ALO 183</b> Sosyal Destek Hattı da var.</div>
+ <div class="tabs"><button id="t1" class="on">Akış</button><button id="t2">İyi gelenler</button></div>
+ <div id="v1">
+  <div class="card">
+   <b>Bugün nasılsın?</b>
+   <div class="chips" id="cm"></div>
+   <textarea id="tx" maxlength="500" placeholder="İstersen birkaç cümleyle anlat…"></textarea>
+   <div class="row">
+    <input type="text" id="nick" maxlength="20" placeholder="Takma ad (isteğe bağlı)" style="flex:1;min-width:140px">
+    <label><input type="checkbox" id="anon"> Anonim</label>
+    <button class="btn p" id="send">Paylaş</button>
+   </div>
+  </div>
+  <div class="chips" id="cf"></div>
+  <div id="feed"></div>
+ </div>
+ <div id="v2" style="display:none">
+  <p class="sub">Bir duygu seç; topluluğun ve bizim önerilerimiz burada.</p>
+  <div class="chips" id="cg"></div>
+  <div id="good"></div>
+ </div>
+</div>
+<div id="toast"></div>
+<script>
+const $ = s => document.querySelector(s);
+const MOODS = [["😢","Üzgün"],["🌧️","Çökkün"],["😰","Kaygılı"],["🫂","Yalnız"],["😮‍💨","Yorgun"],["😠","Öfkeli"],["🤯","Stresli"],["😊","Mutlu"]];
+const CATS = [["🎵","Şarkı"],["🎨","Hobi"],["📍","Yer"],["🎬","Film/Dizi"],["🏃","Aktivite"],["💬","Söz/Düşünce"]];
+const BASE = {
+"Üzgün":[["🏃","Dışarı çıkıp 15 dakika yürü"],["💬","Bir arkadaşına “konuşabilir miyiz?” diye yaz"]],
+"Çökkün":[["🏃","Yüzünü yıka, pencereyi aç, biraz gün ışığı al"],["💬","Küçük bir adım yeterli: bugün tek bir şey yap"]],
+"Kaygılı":[["🏃","4 saniye nefes al, 4 saniye tut, 6 saniye ver (5 tur)"],["💬","Aklındaki her şeyi kâğıda dök"]],
+"Yalnız":[["🏃","Kalabalık bir kafede sadece oturmak bile iyi gelir"],["💬","Uzun süredir konuşmadığın birine kısa bir mesaj at"]],
+"Yorgun":[["🏃","20 dakikalık kısa bir şekerleme yap"],["💬","Bugün hiçbir şeyi mükemmel yapmak zorunda değilsin"]],
+"Öfkeli":[["🏃","Hızlı yürüyüş ya da koşu, öfkeyi bedenden çıkarır"],["💬","Göndermeyeceğin bir mektup yaz"]],
+"Stresli":[["🏃","Yapılacakları yaz, sadece en önemli üçünü seç"],["💬","Telefonu bir saat uzağa bırak"]],
+"Mutlu":[["🎨","Bu anı bir fotoğrafla ya da notla sakla"],["💬","Bu mutluluğu birine anlat, paylaşınca büyür"]]
+};
+
+function rid() {
+  let s = "";
+  for (let i = 0; i < 16; i++) s += Math.floor(Math.random() * 16).toString(16);
+  return s;
+}
+let uid = "";
+try { uid = localStorage.getItem("uid") || ""; if (!uid) { uid = rid(); localStorage.setItem("uid", uid); } } catch (e) { uid = rid(); }
+const qp = new URLSearchParams(location.search).get("admin");
+try { if (qp) localStorage.setItem("ak", qp); } catch (e) {}
+let ak = "";
+try { ak = localStorage.getItem("ak") || ""; } catch (e) {}
+
+let posts = [], tips = [], mood = "", fmood = "", gmood = "Üzgün", openTip = null, loaded = false;
+
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const toast = m => { const t = $("#toast"); t.textContent = m; t.style.display = "block"; setTimeout(() => t.style.display = "none", 4000); };
+const ago = t => { const m = Math.floor((Date.now() - t) / 60000); return m < 1 ? "az önce" : m < 60 ? m + " dk önce" : m < 1440 ? Math.floor(m / 60) + " sa önce" : Math.floor(m / 1440) + " gün önce"; };
+const moodE = n => (MOODS.find(m => m[1] === n) || ["", ""])[0];
+
+async function api(p, body) {
+  const h = { "content-type": "application/json" };
+  if (ak) h["x-admin"] = ak;
+  const r = await fetch(p, { method: "POST", headers: h, body: JSON.stringify(Object.assign({ u: uid }, body)) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || "Hata");
+  return j;
+}
+function safe() {
+  if (openTip !== null) return false;
+  const a = document.activeElement;
+  return !(a && a.closest && a.closest("#feed") && /INPUT|TEXTAREA/.test(a.tagName));
+}
+async function load(force) {
+  try {
+    const h = ak ? { "x-admin": ak } : {};
+    const r = await fetch("/api/data?u=" + uid, { headers: h });
+    const j = await r.json();
+    posts = j.posts || [];
+    tips = j.tips || [];
+    loaded = true;
+  } catch (e) {}
+  if (force || safe()) render();
+}
+
+function chips(el, sel, fn, all) {
+  $(el).innerHTML = (all ? [["✨","Hepsi"]] : []).concat(MOODS).map(m => {
+    const v = m[1] === "Hepsi" ? "" : m[1];
+    return '<button class="chip ' + (sel === v ? "on" : "") + '" data-v="' + v + '">' + m[0] + " " + m[1] + "</button>";
+  }).join("");
+  $(el).querySelectorAll("button").forEach(b => b.onclick = () => fn(b.dataset.v));
+}
+function tipHtml(t) {
+  return '<div class="tip"><div class="t">' + t.cat + " " + esc(t.text) + "<small>" + esc(t.nick || "Anonim") + " · " + ago(t.ts) +
+    (t.own ? ' · <button class="lnk" data-deltip="' + t.id + '">Sil</button>' : "") + "</small></div>" +
+    '<button class="like ' + (t.liked ? "on" : "") + '" data-like="' + t.id + '">💛 ' + t.likes + "</button></div>";
+}
+function render() {
+  chips("#cm", mood, v => { mood = v; render(); }, false);
+  chips("#cf", fmood, v => { fmood = v; render(); }, true);
+  chips("#cg", gmood, v => { gmood = v; render(); }, false);
+
+  const L = posts.filter(p => !fmood || p.mood === fmood).sort((a, b) => b.ts - a.ts);
+  $("#feed").innerHTML = L.map(p => {
+    const pt = tips.filter(t => t.postId === p.id).sort((a, b) => b.likes - a.likes);
+    return '<div class="card"><div class="meta"><span class="badge">' + moodE(p.mood) + " " + esc(p.mood) + "</span>" +
+      esc(p.anon ? "Anonim" : (p.nick || "Biri")) + " · " + ago(p.ts) +
+      (p.own ? '<button class="lnk del" data-delpost="' + p.id + '">Sil</button>' : "") + "</div><div>" + esc(p.text) + "</div>" +
+      pt.map(tipHtml).join("") +
+      '<button class="lnk" data-open="' + p.id + '">＋ Sana iyi gelen bir şey öner</button>' +
+      (openTip === p.id ? '<div><div class="chips" id="tc">' + CATS.map((c, i) => '<button class="chip ' + (i === 0 ? "on" : "") + '" data-c="' + c[0] + '">' + c[0] + " " + c[1] + "</button>").join("") +
+        '</div><input type="text" id="tt" maxlength="200" placeholder="Örn. şarkı adı, bir hobi, bir mekân…"><div class="row"><button class="btn p" data-tip="' + p.id + '">Öner</button></div></div>' : "") +
+      "</div>";
+  }).join("") || '<div class="empty">' + (loaded ? "Henüz paylaşım yok. İlk paylaşımı sen yap 💛" : "Yükleniyor…") + "</div>";
+
+  const ts = tips.filter(t => t.mood === gmood).sort((a, b) => b.likes - a.likes);
+  const cats = CATS.map(c => {
+    const l = ts.filter(t => t.cat === c[0]);
+    return l.length ? '<div class="cat"><h3>' + c[0] + " " + c[1] + "</h3>" + l.map(tipHtml).join("") + "</div>" : "";
+  }).join("");
+  $("#good").innerHTML = '<div class="card"><b>' + moodE(gmood) + " " + gmood + " hissedenlere topluluktan</b>" +
+    (cats || '<div class="empty">Henüz topluluk önerisi yok. Akıştan ilk öneriyi sen ver.</div>') + "</div>" +
+    '<div class="card"><b>Her zaman işe yarayanlar</b>' + (BASE[gmood] || []).map(b => '<div class="tip"><div class="t">' + b[0] + " " + esc(b[1]) + "</div></div>").join("") + "</div>";
+
+  document.querySelectorAll("[data-like]").forEach(b => b.onclick = () => act(() => api("/api/like", { tipId: b.dataset.like })));
+  document.querySelectorAll("[data-delpost]").forEach(b => b.onclick = () => { if (confirm("Bu paylaşım silinsin mi?")) act(() => api("/api/delete", { kind: "post", id: b.dataset.delpost })); });
+  document.querySelectorAll("[data-deltip]").forEach(b => b.onclick = () => { if (confirm("Bu öneri silinsin mi?")) act(() => api("/api/delete", { kind: "tip", id: b.dataset.deltip })); });
+  document.querySelectorAll("[data-open]").forEach(b => b.onclick = () => { openTip = openTip === b.dataset.open ? null : b.dataset.open; render(); });
+  document.querySelectorAll("[data-tip]").forEach(b => b.onclick = () => {
+    const text = $("#tt").value.trim();
+    if (!text) return toast("Bir öneri yaz.");
+    const c = (document.querySelector("#tc .on") || {}).dataset;
+    act(async () => {
+      await api("/api/tip", { postId: b.dataset.tip, cat: c ? c.c : "💬", text, nick: $("#nick").value.trim() });
+      openTip = null;
+      toast("Teşekkürler, öneri eklendi 💛");
+    });
+  });
+  document.querySelectorAll("#tc .chip").forEach(b => b.onclick = () => {
+    document.querySelectorAll("#tc .chip").forEach(x => x.classList.remove("on"));
+    b.classList.add("on");
+  });
+}
+async function act(fn) {
+  try { await fn(); } catch (e) { toast(e.message === "Failed to fetch" ? "Sunucuya ulaşılamıyor. Komut penceresi açık mı?" : e.message); }
+  await load(openTip === null);
+}
+$("#send").onclick = () => {
+  const text = $("#tx").value.trim();
+  if (!mood) return toast("Önce bir duygu seç.");
+  if (!text) return toast("Birkaç kelime yaz.");
+  const nick = $("#nick").value.trim();
+  try { localStorage.setItem("nick", nick); } catch (e) {}
+  act(async () => {
+    const r = await api("/api/post", { mood, text, nick, anon: $("#anon").checked });
+    $("#tx").value = "";
+    toast(r.help ? "Yalnız değilsin 💛 Kendine zarar vermeyi düşünüyorsan hemen 112’yi ara." : "Paylaşıldı 💛");
+  });
+};
+$("#t1").onclick = () => { $("#v1").style.display = ""; $("#v2").style.display = "none"; $("#t1").className = "on"; $("#t2").className = ""; };
+$("#t2").onclick = () => { $("#v2").style.display = ""; $("#v1").style.display = "none"; $("#t2").className = "on"; $("#t1").className = ""; };
+try { $("#nick").value = localStorage.getItem("nick") || ""; } catch (e) {}
+if (location.protocol === "file:") alert("Siteyi dosyaya çift tıklayarak değil, tarayıcıda localhost:3000 adresiyle açın.");
+render();
+load(true);
+setInterval(() => { if (!document.hidden) load(false); }, 10000);
+</script>
+</body>
+</html>
