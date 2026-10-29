@@ -65,7 +65,19 @@ function isAdmin(req) {
 http.createServer(async (req, res) => {
   const u = new URL(req.url, "http://x");
   const ip = req.socket.remoteAddress;
+  const host = req.headers["x-forwarded-host"] || req.headers.host || "";
+  const proto = req.headers["x-forwarded-proto"] || "http";
   try {
+    if (u.pathname === "/robots.txt") {
+      res.writeHead(200, { "content-type": "text/plain; charset=utf-8" });
+      return res.end("User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: " + proto + "://" + host + "/sitemap.xml\n");
+    }
+
+    if (u.pathname === "/sitemap.xml") {
+      res.writeHead(200, { "content-type": "application/xml; charset=utf-8" });
+      return res.end('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>' + proto + "://" + host + "/</loc></url></urlset>\n");
+    }
+
     if (req.method === "GET" && u.pathname === "/api/data") {
       const me = clean(u.searchParams.get("u"), 40);
       const adm = isAdmin(req);
